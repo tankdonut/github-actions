@@ -1,0 +1,23 @@
+name: Test pre-commit composite action
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "actions/pre-commit/**"
+      - ".github/workflows/test-pre-commit.yml"
+  pull_request:
+    paths:
+      - "actions/pre-commit/**"
+      - ".github/workflows/test-pre-commit.yml"
+
+jobs:
+  pre-commit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use pre-commit composite action
+        uses: ./actions/pre-commit
