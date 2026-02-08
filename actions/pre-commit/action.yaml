@@ -1,0 +1,24 @@
+name: "pre-commit"
+description: "Execute pre-commit hooks"
+author: "tankdonut"
+
+inputs: {}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Cache asdf Tools
+      uses: actions/cache@v4
+      id: cache-asdf
+      with:
+        path: ~/.asdf
+        key: asdf-cache-${{ runner.os }}-${{ hashFiles('.tool-versions') }}
+
+    - name: Install Dependencies via asdf
+      uses: asdf-vm/actions/install@v4
+
+    - name: Execute pre-commit
+      uses: pre-commit/action@v3.0.1
