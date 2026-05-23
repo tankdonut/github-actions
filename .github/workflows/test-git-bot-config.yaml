@@ -1,0 +1,29 @@
+name: test-git-bot-config
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "actions/git-bot-config/**"
+  pull_request:
+    paths:
+      - "actions/git-bot-config/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Configure git bot identity
+        uses: ./actions/git-bot-config
+
+      - name: Verify git user name
+        run: git config user.name
+        shell: bash
+
+      - name: Verify git user email
+        run: git config user.email
+        shell: bash

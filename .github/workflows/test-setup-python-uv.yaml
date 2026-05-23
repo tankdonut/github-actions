@@ -1,0 +1,31 @@
+name: Test setup-python-uv composite action
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "actions/setup-python-uv/**"
+      - ".github/workflows/test-setup-python-uv.yaml"
+  pull_request:
+    paths:
+      - "actions/setup-python-uv/**"
+      - ".github/workflows/test-setup-python-uv.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use setup-python-uv composite action
+        uses: ./actions/setup-python-uv
+
+      - name: Verify python
+        run: python --version
+        shell: bash
+
+      - name: Verify uv
+        run: uv --version
+        shell: bash

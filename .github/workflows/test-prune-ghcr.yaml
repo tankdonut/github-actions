@@ -1,0 +1,16 @@
+name: Test Prune GHCR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/prune-ghcr.yaml
+
+jobs:
+  test:
+    uses: ./.github/workflows/prune-ghcr.yaml
+    with:
+      packages: '["test-package"]'
+      exclude-tags: latest
+      keep-n-tagged: "5"

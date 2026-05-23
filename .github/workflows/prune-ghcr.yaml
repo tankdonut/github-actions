@@ -1,0 +1,45 @@
+name: Prune GHCR Images
+
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: 'JSON array of package names to prune, e.g. ''["my-package"]'''
+        required: true
+        type: string
+      exclude-tags:
+        description: Comma-separated tags to exclude from pruning
+        required: false
+        default: latest
+        type: string
+      keep-n-tagged:
+        description: Number of tagged images to keep per package
+        required: false
+        default: "10"
+        type: string
+      token:
+        description: GitHub token for authentication
+        required: false
+        default: ${{ github.token }}
+        type: string
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        package: ${{ fromJson(inputs.packages) }}
+    steps:
+      - name: Prune stale images (${{ matrix.package }})
+        continue-on-error: true
+        uses: dataaxiom/ghcr-cleanup-action@374e2028c8fb93b7219f3771cd405fab95d3dec4 # v1.2.0
+        with:
+          token: ${{ inputs.token }}
+          repository: ${{ github.repository }}
+          package: ${{ matrix.package }}
+          keep-n-tagged: ${{ inputs.keep-n-tagged }}
+          exclude-tags: ${{ inputs.exclude-tags }}
+          delete-untagged: true
+          use-regex: true

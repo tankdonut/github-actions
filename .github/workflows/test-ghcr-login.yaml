@@ -1,0 +1,23 @@
+name: Test GHCR Login composite action
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "actions/ghcr-login/**"
+      - ".github/workflows/test-ghcr-login.yaml"
+  pull_request:
+    paths:
+      - "actions/ghcr-login/**"
+      - ".github/workflows/test-ghcr-login.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use GHCR Login composite action
+        uses: ./actions/ghcr-login
