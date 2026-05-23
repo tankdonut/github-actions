@@ -21,7 +21,7 @@ Centralized GitHub Actions for tankdonut repositories.
 
 Actions are referenced via the `@v1` major tag. The `v1` tag moves forward with each compatible change, so consumers always get the latest patch without pinning a specific commit.
 
-Third-party actions used inside composite actions (like `actions/checkout`, `actions/setup-python`) are SHA-pinned for supply-chain security. Dependabot tracks these pins and opens PRs when new versions drop.
+Third-party actions used inside composite actions (like `actions/checkout`, `actions/setup-python`) are SHA-pinned for supply-chain security. Renovate tracks these pins and opens PRs when new versions drop.
 
 ## Contributing
 
