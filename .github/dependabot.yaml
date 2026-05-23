@@ -4,3 +4,19 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: github-actions
+    directory: /actions/pre-commit
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /actions/setup-python-uv
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /actions/ghcr-login
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /actions/git-bot-config
+    schedule:
+      interval: weekly

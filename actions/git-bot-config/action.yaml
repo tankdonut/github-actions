@@ -1,0 +1,21 @@
+name: "Git Bot Config"
+description: "Configure git identity for automated commits using GitHub Actions bot"
+
+inputs:
+  name:
+    description: "Git user name"
+    default: "github-actions[bot]"
+  email:
+    description: "Git user email (canonical GitHub bot format)"
+    default: "41898282+github-actions[bot]@users.noreply.github.com"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure git user name
+      run: git config --global user.name "${{ inputs.name }}"
+      shell: bash
+
+    - name: Configure git user email
+      run: git config --global user.email "${{ inputs.email }}"
+      shell: bash

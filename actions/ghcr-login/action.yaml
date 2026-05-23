@@ -1,0 +1,33 @@
+name: "GHCR Login"
+description: "Login to GitHub Container Registry using podman, docker, or crane"
+
+inputs:
+  runtime:
+    description: "Container runtime to use: podman, docker, or crane"
+    default: "podman"
+  registry:
+    description: "Container registry URL"
+    default: "ghcr.io"
+  username:
+    description: "Registry username"
+    default: "${{ github.actor }}"
+  token:
+    description: "Registry password/token"
+    default: "${{ github.token }}"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to container registry
+      shell: bash
+      run: |
+        if [ "${{ inputs.runtime }}" = "podman" ]; then
+          echo "${{ inputs.token }}" | podman login ${{ inputs.registry }} -u ${{ inputs.username }} --password-stdin
+        elif [ "${{ inputs.runtime }}" = "docker" ]; then
+          echo "${{ inputs.token }}" | docker login ${{ inputs.registry }} -u ${{ inputs.username }} --password-stdin
+        elif [ "${{ inputs.runtime }}" = "crane" ]; then
+          echo "${{ inputs.token }}" | crane auth login ${{ inputs.registry }} -u ${{ inputs.username }} --password-stdin
+        else
+          echo "::error::Unsupported runtime: ${{ inputs.runtime }}. Must be podman, docker, or crane."
+          exit 1
+        fi
