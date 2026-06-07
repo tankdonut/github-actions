@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Prune stale images (${{ matrix.package }})
         continue-on-error: true
-        uses: dataaxiom/ghcr-cleanup-action@374e2028c8fb93b7219f3771cd405fab95d3dec4 # v1.2.0
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
         with:
           token: ${{ inputs.token }}
           repository: ${{ github.repository }}
