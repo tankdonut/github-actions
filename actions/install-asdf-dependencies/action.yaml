@@ -48,6 +48,20 @@ runs:
         path: ${{ inputs.asdf_dir }}
         key: asdf-cache-${{ runner.os }}-${{ hashFiles(inputs.tool_versions_file) }}
 
+    - name: Add asdf to PATH
+      if: hashFiles(inputs.tool_versions_file) != ''
+      shell: bash
+      env:
+        ASDF_DIR_INPUT: ${{ inputs.asdf_dir }}
+      run: |
+        # GITHUB_PATH and GITHUB_ENV do not perform tilde expansion; do it manually
+        # so a default input of "~/.asdf" resolves correctly.
+        ASDF_DIR="${ASDF_DIR_INPUT/#\~/$HOME}"
+        echo "ASDF_DIR=$ASDF_DIR" >> "$GITHUB_ENV"
+        echo "ASDF_DATA_DIR=$ASDF_DIR" >> "$GITHUB_ENV"
+        echo "$ASDF_DIR/bin" >> "$GITHUB_PATH"
+        echo "$ASDF_DIR/shims" >> "$GITHUB_PATH"
+
     - name: Install Python build dependencies
       if: runner.os == 'Linux' && inputs.install_python_build_deps == 'true' && hashFiles(inputs.tool_versions_file) != '' && steps.cache-asdf.outputs.cache-hit != 'true' && steps.check-python.outputs.in_tool_versions == 'true'
       shell: bash

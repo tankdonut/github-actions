@@ -52,4 +52,4 @@ No-op safe: if `.tool-versions` is absent, every step is skipped and the action 
 
 - The Python build-dependency step is gated to Linux runners (uses `apt-get`). On macOS, the step is skipped — asdf-built Python on macOS may still miss the bz2/readline/lzma modules; install the Homebrew equivalents (`readline`, `xz`, `bzip2`) upstream if needed.
 - The build-dependency step only runs on asdf cache miss — when the cache hits, the Python build already happened previously with the libraries available (or will use the cached binary).
-- The PATH step runs on both cache-hit and cache-miss paths since asdf is restored from cache either way.
+- On cache hit, `asdf-vm/actions/install` is skipped entirely. To keep asdf usable in that case, the action adds `$asdf_dir/bin` and `$asdf_dir/shims` to `GITHUB_PATH` and exports `ASDF_DIR` / `ASDF_DATA_DIR` itself (mirroring what `asdf-vm/actions/install` does on a fresh install). This runs on both cache-hit and cache-miss paths.
