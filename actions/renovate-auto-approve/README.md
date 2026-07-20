@@ -4,6 +4,24 @@ Approves non-draft pull requests opened by Renovate bots using a PAT (Personal A
 
 The action wraps [`hmarr/auto-approve-action`](https://github.com/hmarr/auto-approve-action) and adds a token-presence check that fails fast with a clear error message if the PAT is missing.
 
+## Repository setup (one-time, required)
+
+Before this action can approve PRs, the consuming repository needs four things configured. None of them can be declared in code — they all live in repo settings or secrets.
+
+1. **Allow GitHub Actions to approve pull requests.**
+   Settings → Actions → General → Workflow permissions → tick "Allow GitHub Actions to create and approve pull requests". Without this, the approval API call is rejected regardless of the token's scopes.
+
+2. **Create the `AUTO_APPROVE_PAT` secret.**
+   Settings → Secrets and variables → Actions → New repository secret. Name it `AUTO_APPROVE_PAT` and paste a fine-grained PAT (or classic PAT with `public_repo` / `repo` scope depending on visibility) that has the `pull_request:write` permission for this repository. The token must belong to a user or bot that is not blocked by branch protection rules as a reviewer.
+
+3. **Enable auto-merge (so approval triggers the merge).**
+   Settings → General → Pull Requests → tick "Allow auto-merge". This exposes the auto-merge UI on each PR and lets Renovate request auto-merge when it opens the PR. Without it, the approval stands alone and a human still has to click merge.
+
+4. **Enable automatic branch deletion (optional but recommended).**
+   Settings → General → Pull Requests → tick "Automatically delete head branches". Keeps the branch list clean after auto-merge lands.
+
+All four can also be set programmatically via the GitHub API or `gh` CLI for bootstrapping multiple repositories.
+
 ## Usage
 
 ```yaml
