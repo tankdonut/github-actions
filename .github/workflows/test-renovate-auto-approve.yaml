@@ -1,0 +1,43 @@
+name: Test renovate-auto-approve composite action
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "actions/renovate-auto-approve/**"
+      - ".github/workflows/test-renovate-auto-approve.yaml"
+  pull_request:
+    paths:
+      - "actions/renovate-auto-approve/**"
+      - ".github/workflows/test-renovate-auto-approve.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # The action's first step errors with a clear message when github-token
+      # is empty. We expect this to fail; continue-on-error lets us assert
+      # the failure rather than aborting the job.
+      #
+      # The full success path (actually approving a PR) is intentionally NOT
+      # tested here because it requires a real PAT and a bot-opened PR, both
+      # of which would have side effects on the repository.
+      - name: Verify action rejects empty token
+        uses: ./actions/renovate-auto-approve
+        id: empty-token
+        continue-on-error: true
+        with:
+          github-token: ""
+
+      - name: Assert action failed on empty token
+        shell: bash
+        run: |
+          if [ "${{ steps.empty-token.outcome }}" != "failure" ]; then
+            echo "::error::Expected the action to fail when github-token is empty"
+            exit 1
+          fi
+          echo "Action correctly rejected empty github-token input"
