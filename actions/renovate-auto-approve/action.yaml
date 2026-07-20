@@ -1,0 +1,31 @@
+name: "Renovate Auto-Approve"
+description: "Approve non-draft pull requests opened by Renovate bots using a PAT"
+author: "tankdonut"
+
+inputs:
+  github-token:
+    description: "GitHub token (typically a PAT) with pull_request:write scope. The default GITHUB_TOKEN cannot approve PRs opened by workflow runs."
+    required: true
+  review-message:
+    description: "Message attached to the approval review"
+    required: false
+    default: "Auto-approved by Renovate Auto-Approve workflow. Merge is gated by required status checks via GitHub Auto-Merge."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify github-token is configured
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.github-token }}
+      run: |
+        if [ -z "$TOKEN" ]; then
+          echo "::error::github-token input is empty. Provide a PAT with pull_request:write scope (e.g. via secrets.AUTO_APPROVE_PAT). The default GITHUB_TOKEN cannot approve PRs opened by workflow runs."
+          exit 1
+        fi
+
+    - name: Approve Renovate pull request
+      uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 # v4.0.0
+      with:
+        github-token: ${{ inputs.github-token }}
+        review-message: ${{ inputs.review-message }}

@@ -76,6 +76,12 @@ runs:
       shell: bash
       run: uv sync ${{ inputs.uv_sync_args }}
 
+    - name: Cache pre-commit hooks
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ runner.os }}-${{ hashFiles('.tool-versions', '.pre-commit-config.yaml') }}
+
     - name: Execute pre-commit
       uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
       with:

@@ -21,18 +21,10 @@ jobs:
       (github.actor == 'renovate[bot]' || github.actor == 'renovate-config[bot]')
     runs-on: ubuntu-latest
     steps:
-      - name: Verify AUTO_APPROVE_PAT secret is configured
-        env:
-          AUTO_APPROVE_PAT: ${{ secrets.AUTO_APPROVE_PAT }}
-        run: |
-          if [ -z "$AUTO_APPROVE_PAT" ]; then
-            echo "::error::Secret 'AUTO_APPROVE_PAT' is not set. Configure it under repo Settings → Secrets and variables → Actions with a token carrying pull_request:write scope."
-            exit 1
-          fi
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Approve Renovate pull request
-        uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 # v4.0.0
+        uses: ./actions/renovate-auto-approve
         with:
           github-token: ${{ secrets.AUTO_APPROVE_PAT }}
-          review-message: >
-            Auto-approved by Renovate Auto-Approve workflow.
-            Merge is gated by required status checks via GitHub Auto-Merge.
