@@ -1,0 +1,82 @@
+name: "Install asdf Dependencies"
+description: "Install tools declared in .tool-versions via asdf, with caching and optional Python build-dependency installation"
+author: "tankdonut"
+
+inputs:
+  asdf_dir:
+    description: "Path to asdf installation directory for caching"
+    required: false
+    default: "~/.asdf"
+  tool_versions_file:
+    description: "Path to .tool-versions file"
+    required: false
+    default: ".tool-versions"
+  install_python_build_deps:
+    description: "Whether to install apt packages (libbz2-dev, libreadline-dev, liblzma-dev) when python is declared in .tool-versions on Linux runners"
+    required: false
+    default: "true"
+
+outputs:
+  cache-hit:
+    description: "Whether the asdf cache was hit (no install was performed). Empty if .tool-versions is absent."
+    value: ${{ steps.cache-asdf.outputs.cache-hit }}
+  python-in-tool-versions:
+    description: "'true' if python is declared in .tool-versions, 'false' otherwise. Empty if .tool-versions is absent."
+    value: ${{ steps.check-python.outputs.in_tool_versions }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check Python in .tool-versions
+      if: hashFiles(inputs.tool_versions_file) != ''
+      id: check-python
+      shell: bash
+      env:
+        TOOL_VERSIONS_FILE: ${{ inputs.tool_versions_file }}
+      run: |
+        if grep -q '^python ' "$TOOL_VERSIONS_FILE"; then
+          echo "in_tool_versions=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "in_tool_versions=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Cache asdf Tools
+      if: hashFiles(inputs.tool_versions_file) != ''
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: cache-asdf
+      with:
+        path: ${{ inputs.asdf_dir }}
+        key: asdf-cache-${{ runner.os }}-${{ hashFiles(inputs.tool_versions_file) }}
+
+    - name: Add asdf to PATH
+      if: hashFiles(inputs.tool_versions_file) != ''
+      shell: bash
+      env:
+        ASDF_DIR_INPUT: ${{ inputs.asdf_dir }}
+      run: |
+        # GITHUB_PATH and GITHUB_ENV do not perform tilde expansion; do it manually
+        # so a default input of "~/.asdf" resolves correctly.
+        ASDF_DIR="${ASDF_DIR_INPUT/#\~/$HOME}"
+        echo "ASDF_DIR=$ASDF_DIR" >> "$GITHUB_ENV"
+        echo "ASDF_DATA_DIR=$ASDF_DIR" >> "$GITHUB_ENV"
+        echo "$ASDF_DIR/bin" >> "$GITHUB_PATH"
+        echo "$ASDF_DIR/shims" >> "$GITHUB_PATH"
+
+    - name: Install Python build dependencies
+      if: runner.os == 'Linux' && inputs.install_python_build_deps == 'true' && hashFiles(inputs.tool_versions_file) != '' && steps.cache-asdf.outputs.cache-hit != 'true' && steps.check-python.outputs.in_tool_versions == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libbz2-dev libreadline-dev liblzma-dev
+
+    - name: Install Dependencies via asdf
+      if: hashFiles(inputs.tool_versions_file) != '' && steps.cache-asdf.outputs.cache-hit != 'true'
+      uses: asdf-vm/actions/install@b7bcd026f18772e44fe1026d729e1611cc435d47 # v4.0.1
+
+    - name: Add asdf Python bin to PATH
+      if: hashFiles(inputs.tool_versions_file) != '' && steps.check-python.outputs.in_tool_versions == 'true'
+      shell: bash
+      run: |
+        if asdf where python >/dev/null 2>&1; then
+          echo "$(asdf where python)/bin" >> "$GITHUB_PATH"
+        fi

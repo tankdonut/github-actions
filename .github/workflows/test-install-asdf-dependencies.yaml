@@ -1,0 +1,44 @@
+name: Test install-asdf-dependencies composite action
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "actions/install-asdf-dependencies/**"
+      - ".github/workflows/test-install-asdf-dependencies.yaml"
+  pull_request:
+    paths:
+      - "actions/install-asdf-dependencies/**"
+      - ".github/workflows/test-install-asdf-dependencies.yaml"
+
+jobs:
+  install-asdf-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install asdf dependencies
+        id: asdf
+        uses: ./actions/install-asdf-dependencies
+
+      - name: Verify python-in-tool-versions output
+        shell: bash
+        run: |
+          # Repo .tool-versions has 'pre-commit 4.6.0' but no python, so output should be 'false'.
+          actual="${{ steps.asdf.outputs.python-in-tool-versions }}"
+          if [ "$actual" != "false" ]; then
+            echo "::error::Expected python-in-tool-versions='false', got '$actual'"
+            exit 1
+          fi
+          echo "python-in-tool-versions output correctly set to 'false'"
+
+      - name: Verify pre-commit tool installed
+        shell: bash
+        run: |
+          if ! command -v pre-commit >/dev/null 2>&1; then
+            echo "::error::pre-commit not on PATH after asdf install"
+            exit 1
+          fi
+          pre-commit --version
