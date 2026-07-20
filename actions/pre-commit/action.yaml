@@ -28,7 +28,7 @@ runs:
   using: "composite"
   steps:
     - name: Install asdf dependencies
-      uses: ./actions/install-asdf-dependencies
+      uses: tankdonut/github-actions/actions/install-asdf-dependencies@v1
       with:
         asdf_dir: ${{ inputs.asdf_dir }}
 
