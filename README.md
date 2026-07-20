@@ -6,10 +6,12 @@ Centralized GitHub Actions for tankdonut repositories.
 
 | Action | Description |
 | ------ | ----------- |
+| [install-asdf-dependencies](actions/install-asdf-dependencies/README.md) | Install tools from `.tool-versions` via asdf with caching |
 | [pre-commit](actions/pre-commit/README.md) | Execute pre-commit hooks via asdf |
 | [setup-python-uv](actions/setup-python-uv/README.md) | Setup Python and uv toolchain |
 | [ghcr-login](actions/ghcr-login/README.md) | Login to GHCR (podman/docker/crane) |
 | [git-bot-config](actions/git-bot-config/README.md) | Configure git identity for bot commits |
+| [renovate-auto-approve](actions/renovate-auto-approve/README.md) | Approve non-draft PRs opened by Renovate bots |
 
 ## Reusable Workflows
 
