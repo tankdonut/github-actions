@@ -12,6 +12,8 @@ jobs:
   test-default:
     name: Default (exclude-tags only)
     uses: ./.github/workflows/prune-ghcr.yaml
+    permissions:
+      packages: write
     with:
       packages: '["test-package"]'
       exclude-tags: latest
@@ -20,6 +22,8 @@ jobs:
   test-exclude-semver:
     name: exclude-semver + exclude-latest
     uses: ./.github/workflows/prune-ghcr.yaml
+    permissions:
+      packages: write
     with:
       packages: '["test-package"]'
       exclude-tags: dev
