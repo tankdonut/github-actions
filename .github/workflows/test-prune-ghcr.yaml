@@ -6,11 +6,23 @@ on:
       - main
     paths:
       - .github/workflows/prune-ghcr.yaml
+      - .github/workflows/test-prune-ghcr.yaml
 
 jobs:
-  test:
+  test-default:
+    name: Default (exclude-tags only)
     uses: ./.github/workflows/prune-ghcr.yaml
     with:
       packages: '["test-package"]'
       exclude-tags: latest
+      keep-n-tagged: "5"
+
+  test-exclude-semver:
+    name: exclude-semver + exclude-latest
+    uses: ./.github/workflows/prune-ghcr.yaml
+    with:
+      packages: '["test-package"]'
+      exclude-tags: dev
+      exclude-latest: true
+      exclude-semver: true
       keep-n-tagged: "5"

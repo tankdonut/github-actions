@@ -8,10 +8,28 @@ on:
         required: true
         type: string
       exclude-tags:
-        description: Comma-separated tags to exclude from pruning
+        description: |
+          Comma-separated tags to exclude from pruning. When neither `exclude-semver`
+          nor `exclude-latest` is set, this value is passed through verbatim to the
+          underlying action (which runs in regex mode, so entries are substring matches).
+          When either of those toggles is enabled, entries are treated as literal strings
+          (regex metacharacters escaped) and combined into a single anchored alternation.
         required: false
         default: latest
         type: string
+      exclude-latest:
+        description: When true, never prune the `latest` tag (added as an exact-match alternative to the exclude regex).
+        required: false
+        default: false
+        type: boolean
+      exclude-semver:
+        description: |
+          When true, never prune any semantic-version tag (e.g. `1.0.0`, `2.3.1-rc.1`).
+          Forces `skip-regex-checks: true` on the underlying action because the canonical
+          semver 2.0.0 pattern is flagged as ReDoS-prone by `safe-regex2`.
+        required: false
+        default: false
+        type: boolean
       keep-n-tagged:
         description: Number of tagged images to keep per package
         required: false
@@ -32,6 +50,61 @@ jobs:
       matrix:
         package: ${{ fromJson(inputs.packages) }}
     steps:
+      - name: Resolve exclude-tags
+        shell: bash
+        env:
+          EXCLUDE_TAGS: ${{ inputs.exclude-tags }}
+          EXCLUDE_LATEST: ${{ inputs.exclude-latest }}
+          EXCLUDE_SEMVER: ${{ inputs.exclude-semver }}
+        run: |
+          # Backwards-compat fast path: if neither new toggle is set, pass the raw
+          # exclude-tags through unchanged (the underlying action already runs in
+          # regex mode with use-regex: true).
+          if [ "${EXCLUDE_LATEST}" != "true" ] && [ "${EXCLUDE_SEMVER}" != "true" ]; then
+            echo "exclude_tags=${EXCLUDE_TAGS}" >> "$GITHUB_ENV"
+            echo "skip_regex_checks=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          # Canonical semver 2.0.0 regex body (the outer ^...$ anchors are added below
+          # so this body can be OR'd against the other alternatives).
+          semver='(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
+
+          parts=()
+          # Existing exclude-tags entries are treated as literal strings; regex
+          # metacharacters are escaped so a value like "v1.0" matches the literal tag.
+          if [ -n "${EXCLUDE_TAGS}" ]; then
+            IFS=',' read -ra raw_entries <<< "${EXCLUDE_TAGS}"
+            for entry in "${raw_entries[@]}"; do
+              entry="$(printf '%s' "${entry}" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+              [ -z "${entry}" ] && continue
+              escaped="$(printf '%s' "${entry}" | sed 's/[.[\*^$()+?{|\\]/\\&/g')"
+              parts+=("${escaped}")
+            done
+          fi
+
+          if [ "${EXCLUDE_LATEST}" = "true" ]; then
+            parts+=('latest')
+          fi
+
+          if [ "${EXCLUDE_SEMVER}" = "true" ]; then
+            parts+=("${semver}")
+          fi
+
+          # Join alternatives with '|' inside a single anchored group.
+          joined="$(IFS='|'; printf '%s' "${parts[*]}")"
+          printf 'exclude_tags=^(?:%s)$\n' "${joined}" >> "$GITHUB_ENV"
+
+          # safe-regex2 flags the canonical semver pattern (nested quantifiers +
+          # overlapping alternatives) as ReDoS-prone, so skip the guard whenever
+          # the semver body is in the mix. For exclude-latest-only paths the
+          # resulting regex is trivially safe, so the guard stays on.
+          if [ "${EXCLUDE_SEMVER}" = "true" ]; then
+            echo "skip_regex_checks=true" >> "$GITHUB_ENV"
+          else
+            echo "skip_regex_checks=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Prune stale images (${{ matrix.package }})
         continue-on-error: true
         uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
@@ -40,6 +113,7 @@ jobs:
           repository: ${{ github.repository }}
           package: ${{ matrix.package }}
           keep-n-tagged: ${{ inputs.keep-n-tagged }}
-          exclude-tags: ${{ inputs.exclude-tags }}
+          exclude-tags: ${{ env.exclude_tags }}
           delete-untagged: true
           use-regex: true
+          skip-regex-checks: ${{ env.skip_regex_checks == 'true' }}
