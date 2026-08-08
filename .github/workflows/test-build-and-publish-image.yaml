@@ -1,0 +1,60 @@
+name: Test Build & Publish Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-and-publish-image.yaml
+      - .github/workflows/test-build-and-publish-image.yaml
+      - .github/workflows/prune-ghcr.yaml
+      - .github/test-image/**
+  pull_request:
+    paths:
+      - .github/workflows/build-and-publish-image.yaml
+      - .github/workflows/test-build-and-publish-image.yaml
+      - .github/test-image/**
+
+jobs:
+  build:
+    name: Build & push test image
+    uses: ./.github/workflows/build-and-publish-image.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image-name: gha-test-image
+      login-runtime: docker
+      build-command: >-
+        docker build
+        -f .github/test-image/Containerfile
+        -t ghcr.io/${{ github.repository_owner }}/gha-test-image:${{ github.sha }}
+        .github/test-image
+      push-command: >-
+        docker push
+        ghcr.io/${{ github.repository_owner }}/gha-test-image:${{ github.sha }}
+
+  prune:
+    name: Prune test image
+    needs: build
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/prune-ghcr.yaml
+    permissions:
+      packages: write
+    with:
+      packages: '["gha-test-image"]'
+      keep-n-tagged: "0"
+
+  test-extra-env:
+    name: extra-env JSON parsing
+    uses: ./.github/workflows/build-and-publish-image.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image-name: test-image
+      setup-python: false
+      build-command: |
+        echo "FEDORA_VERSION=$FEDORA_VERSION"
+        test "$FEDORA_VERSION" = "44"
+      extra-env: '{"FEDORA_VERSION":"44"}'
