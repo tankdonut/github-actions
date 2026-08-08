@@ -1,0 +1,131 @@
+name: Build & Publish Image
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Container image name (without registry/namespace). Set for OCI labels and caller readability."
+        required: true
+        type: string
+      build-command:
+        description: "Shell command that builds the container image (e.g. 'uv run invoke build.container'). Runs unconditionally."
+        required: true
+        type: string
+      push-command:
+        description: "Shell command that pushes the container image. Only runs on non-PR events. Leave empty for build-only pipelines."
+        required: false
+        default: ""
+        type: string
+      checkout-submodules:
+        description: "Checkout submodules recursively."
+        required: false
+        default: false
+        type: boolean
+      install-podman:
+        description: "Install podman via apt-get (needed when the build command uses podman instead of the pre-installed docker)."
+        required: false
+        default: false
+        type: boolean
+      free-disk-space:
+        description: "Remove pre-installed runner tooling (~6 GB) to free disk space for large image builds."
+        required: false
+        default: false
+        type: boolean
+      setup-python:
+        description: "Set up Python + uv toolchain via the setup-python-uv composite action."
+        required: false
+        default: true
+        type: boolean
+      python-version:
+        description: "Python version to install (passed to setup-python-uv)."
+        required: false
+        default: "3.13"
+        type: string
+      registry:
+        description: "Container registry URL for login."
+        required: false
+        default: "ghcr.io"
+        type: string
+      login-runtime:
+        description: "Container runtime for ghcr-login: podman, docker, or crane."
+        required: false
+        default: "podman"
+        type: string
+      extra-env:
+        description: 'JSON object of extra environment variables exported to the build/push commands, e.g. ''{"FEDORA_VERSION":"44"}''.'
+        required: false
+        default: "{}"
+        type: string
+      token:
+        description: "GitHub token for registry authentication."
+        required: false
+        default: ${{ github.token }}
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      CONTAINER_REGISTRY: ${{ inputs.registry }}/${{ github.repository }}
+      IMAGE_NAME: ${{ inputs.image-name }}
+    steps:
+      - name: Free disk space on runner
+        if: ${{ inputs.free-disk-space }}
+        shell: bash
+        run: |
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker system prune -af || true
+          sudo docker image prune -af || true
+          sudo docker volume prune -f || true
+          sudo rm -rf /tmp/* /var/tmp/* || true
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: ${{ inputs.checkout-submodules }}
+
+      - name: Set up Python and uv
+        if: ${{ inputs.setup-python }}
+        uses: tankdonut/github-actions/actions/setup-python-uv@v1
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Podman
+        if: ${{ inputs.install-podman }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends podman
+
+      - name: Login to ${{ inputs.registry }}
+        if: github.event_name != 'pull_request'
+        uses: tankdonut/github-actions/actions/ghcr-login@v1
+        with:
+          runtime: ${{ inputs.login-runtime }}
+          registry: ${{ inputs.registry }}
+          token: ${{ inputs.token }}
+
+      - name: Export extra environment
+        if: ${{ inputs.extra-env != '{}' }}
+        shell: bash
+        env:
+          EXTRA_ENV: ${{ inputs.extra-env }}
+        run: |
+          # Parse JSON object and append each key=value to GITHUB_ENV.
+          printf '%s' "$EXTRA_ENV" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
+
+      - name: Build image (${{ inputs.image-name }})
+        shell: bash
+        run: ${{ inputs.build-command }}
+
+      - name: Push image (${{ inputs.image-name }})
+        if: github.event_name != 'pull_request' && inputs.push-command != ''
+        shell: bash
+        run: ${{ inputs.push-command }}
