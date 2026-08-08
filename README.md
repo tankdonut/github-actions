@@ -17,6 +17,7 @@ Centralized GitHub Actions for tankdonut repositories.
 
 | Workflow | Description |
 | -------- | ----------- |
+| [build-and-publish-image](.github/workflows/build-and-publish-image.yaml) | Build and publish a container image to a registry |
 | [prune-ghcr](.github/workflows/prune-ghcr.yaml) | Prune stale GHCR container images |
 
 ## Versioning and releases
