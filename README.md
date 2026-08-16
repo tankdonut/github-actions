@@ -30,6 +30,8 @@ Third-party actions used inside composite actions (like `actions/checkout`, `act
 
 After merging PRs to `main`, move the `v1` tag and refresh the GitHub Release.
 
+> **Tag protection:** the `Release tag protection` ruleset (target: `refs/tags/v*`) restricts creation, updates, and deletions of release tags to the repository admin. The force-with-lease move below is executed by the admin and reports `Bypassed rule violations` on success; every other credential — including compromised workflow tokens — is rejected with `Cannot update this protected ref`.
+
 ```bash
 # 1. Sync main and review what's changing since the last v1 position
 git checkout main && git pull --ff-only
