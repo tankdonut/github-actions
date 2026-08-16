@@ -13,9 +13,15 @@ runs:
   using: "composite"
   steps:
     - name: Configure git user name
-      run: git config --global user.name "${{ inputs.name }}"
       shell: bash
+      env:
+        # Env indirection: splicing inputs into run: via ${{ }} is expanded
+        # before bash parses the script, enabling script injection.
+        GIT_USER_NAME: ${{ inputs.name }}
+      run: git config --global user.name "$GIT_USER_NAME"
 
     - name: Configure git user email
-      run: git config --global user.email "${{ inputs.email }}"
       shell: bash
+      env:
+        GIT_USER_EMAIL: ${{ inputs.email }}
+      run: git config --global user.email "$GIT_USER_EMAIL"
