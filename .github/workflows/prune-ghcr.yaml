@@ -36,9 +36,9 @@ on:
         default: "10"
         type: string
       token:
-        description: GitHub token for authentication
+        description: GitHub token for authentication. Falls back to the job's GITHUB_TOKEN when empty.
         required: false
-        default: ${{ github.token }}
+        default: ""
         type: string
 
 jobs:
@@ -109,7 +109,7 @@ jobs:
         continue-on-error: true
         uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
         with:
-          token: ${{ inputs.token }}
+          token: ${{ inputs.token || github.token }}
           repository: ${{ github.repository }}
           package: ${{ matrix.package }}
           keep-n-tagged: ${{ inputs.keep-n-tagged }}
