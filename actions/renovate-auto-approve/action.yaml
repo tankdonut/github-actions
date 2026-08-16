@@ -10,6 +10,10 @@ inputs:
     description: "Message attached to the approval review"
     required: false
     default: "Auto-approved by Renovate Auto-Approve workflow. Merge is gated by required status checks via GitHub Auto-Merge."
+  allowed-actors:
+    description: "Comma-separated GitHub actors whose PRs may be approved (matched against github.actor). Set to an empty string to disable the in-action gate."
+    required: false
+    default: "renovate[bot],renovate-config[bot]"
 
 runs:
   using: "composite"
@@ -21,6 +25,33 @@ runs:
       run: |
         if [ -z "$TOKEN" ]; then
           echo "::error::github-token input is empty. Provide a PAT with pull_request:write scope (e.g. via secrets.AUTO_APPROVE_PAT). The default GITHUB_TOKEN cannot approve PRs opened by workflow runs."
+          exit 1
+        fi
+
+    - name: Enforce actor allowlist
+      shell: bash
+      env:
+        ALLOWED_ACTORS: ${{ inputs.allowed-actors }}
+        ACTOR: ${{ github.actor }}
+      run: |
+        # Defense-in-depth: the caller's if: gate remains the primary control,
+        # but this in-action gate enforces the action's documented contract
+        # ("Approve ... Renovate bots") even if a consumer omits it. An empty
+        # allowed-actors value disables the gate for non-Renovate use cases.
+        if [ -z "$ALLOWED_ACTORS" ]; then
+          exit 0
+        fi
+        found=0
+        IFS=',' read -ra allowed <<< "$ALLOWED_ACTORS"
+        for actor in "${allowed[@]}"; do
+          actor="$(printf '%s' "$actor" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+          if [ -n "$actor" ] && [ "$actor" = "$ACTOR" ]; then
+            found=1
+            break
+          fi
+        done
+        if [ "$found" != "1" ]; then
+          echo "::error::github.actor '$ACTOR' is not in allowed-actors; refusing to approve."
           exit 1
         fi
 
