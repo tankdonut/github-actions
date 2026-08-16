@@ -63,6 +63,11 @@ jobs:
 | ----- | -------- | ------- | ----------- |
 | `github-token` | yes | — | PAT with `pull_request:write` scope. Pass via a secret like `secrets.AUTO_APPROVE_PAT`. |
 | `review-message` | no | `Auto-approved by Renovate Auto-Approve workflow. Merge is gated by required status checks via GitHub Auto-Merge.` | Message attached to the approval review |
+| `allowed-actors` | no | `renovate[bot],renovate-config[bot]` | Comma-separated GitHub actors whose PRs may be approved (matched against `github.actor`). Set to `""` to disable the in-action gate. |
+
+## In-action actor gate
+
+Since the gate was added, the action refuses to approve when `github.actor` is not in `allowed-actors` (default: the two Renovate bot accounts). This makes the code match the action's documented contract even if a consumer forgets the workflow-level `if:` gate — approving an arbitrary PR with a powerful PAT is the failure mode this prevents. Set `allowed-actors: ""` if you deliberately use this action for non-Renovate approval flows (you then own the gating entirely).
 
 ## What stays in the consumer workflow
 
