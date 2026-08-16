@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       build-command:
-        description: "Shell command that builds the container image (e.g. 'uv run invoke build.container'). Runs unconditionally."
+        description: "Shell command that builds the container image (e.g. 'uv run invoke build.container'). Runs unconditionally. Treat as shell code: never interpolate untrusted input (PR titles, branch names, dispatch payloads) into it."
         required: true
         type: string
       push-command:
@@ -118,7 +118,22 @@ jobs:
         env:
           EXTRA_ENV: ${{ inputs.extra-env }}
         run: |
-          # Parse JSON object and append each key=value to GITHUB_ENV.
+          # Validate before writing to GITHUB_ENV: every line of that file is
+          # treated as a KEY=VALUE directive, so a newline inside a JSON value
+          # would inject phantom environment variables into later steps, and a
+          # crafted key could shadow PATH or other sensitive variables.
+          if ! printf '%s' "$EXTRA_ENV" | jq -e '
+            type == "object" and
+            (to_entries | all(
+              (.key | test("^[A-Za-z_][A-Za-z0-9_]*$")) and
+              (.value | if type == "string"
+                        then (contains("\n") or contains("\r")) | not
+                        else true end)
+            ))
+          ' > /dev/null; then
+            echo "::error::Invalid extra-env: expected a JSON object with env-var-compatible keys and single-line values."
+            exit 1
+          fi
           printf '%s' "$EXTRA_ENV" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
 
       - name: Build image (${{ inputs.image-name }})
