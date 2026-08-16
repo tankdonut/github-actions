@@ -50,7 +50,11 @@ runs:
     - name: Install Dependencies via UV
       if: inputs.install_uv_deps == 'true'
       shell: bash
-      run: uv sync ${{ inputs.uv_sync_args }}
+      env:
+        # Env indirection prevents script injection via uv_sync_args; the
+        # unquoted expansion intentionally word-splits into multiple arguments.
+        UV_SYNC_ARGS: ${{ inputs.uv_sync_args }}
+      run: uv sync $UV_SYNC_ARGS
 
     - name: Cache pre-commit hooks
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
