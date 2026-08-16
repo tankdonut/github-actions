@@ -57,6 +57,16 @@ jobs:
           EXCLUDE_LATEST: ${{ inputs.exclude-latest }}
           EXCLUDE_SEMVER: ${{ inputs.exclude-semver }}
         run: |
+          # Reject multi-line exclude-tags: in the fast path below an embedded
+          # newline would append phantom GITHUB_ENV lines (every line of that
+          # file becomes a KEY=VALUE directive, so the caller could inject
+          # arbitrary env vars or override exclude_tags itself); in the slow
+          # path `read` silently truncates at the first newline.
+          if [[ "${EXCLUDE_TAGS}" == *$'\n'* || "${EXCLUDE_TAGS}" == *$'\r'* ]]; then
+            echo "::error::exclude-tags must be a single-line value."
+            exit 1
+          fi
+
           # Backwards-compat fast path: if neither new toggle is set, pass the raw
           # exclude-tags through unchanged (the underlying action already runs in
           # regex mode with use-regex: true).
