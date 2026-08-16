@@ -57,9 +57,9 @@ on:
         default: "{}"
         type: string
       token:
-        description: "GitHub token for registry authentication."
+        description: "GitHub token for registry authentication. Falls back to the job's GITHUB_TOKEN when empty."
         required: false
-        default: ${{ github.token }}
+        default: ""
         type: string
 
 jobs:
@@ -110,7 +110,7 @@ jobs:
         with:
           runtime: ${{ inputs.login-runtime }}
           registry: ${{ inputs.registry }}
-          token: ${{ inputs.token }}
+          token: ${{ inputs.token || github.token }}
 
       - name: Export extra environment
         if: ${{ inputs.extra-env != '{}' }}
